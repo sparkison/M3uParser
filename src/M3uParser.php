@@ -50,7 +50,6 @@ class M3uParser
 
     protected function createGenerator($str): Generator
     {
-        $data = $this->createM3uData();
         $lines = \explode("\n", $str);
         for ($i = 0, $l = \count($lines); $i < $l; ++$i) {
             $lineStr = \trim($lines[$i]);
@@ -59,11 +58,6 @@ class M3uParser
             }
 
             if ($this->isExtM3u($lineStr)) {
-                $tmp = \trim(\substr($lineStr, 7));
-                if ($tmp) {
-                    $data->initAttributes($tmp);
-                }
-
                 continue;
             }
 
