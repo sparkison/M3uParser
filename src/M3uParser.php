@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace M3uParser;
 
+use Generator;
+
 class M3uParser
 {
     use TagsManagerTrait;
@@ -11,9 +13,25 @@ class M3uParser
     /**
      * Parse m3u file.
      */
-    public function parseFile(string $file): M3uData
+    public function parseFile(string $file): Generator
     {
-        $str = @\file_get_contents($file);
+        // create curl resource
+        $ch = curl_init();
+
+        // set url
+        curl_setopt($ch, CURLOPT_URL, $file);
+
+        //return the transfer as a string
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.1.13) Gecko/20080311 Firefox/2.0.0.13');
+
+        // $output contains the output string
+        $output = curl_exec($ch);
+
+        // close curl resource to free up system resources
+        curl_close($ch);
+
+        $str = $output;
         if (false === $str) {
             throw new Exception('Can\'t read file.');
         }
@@ -24,13 +42,16 @@ class M3uParser
     /**
      * Parse m3u string.
      */
-    public function parse(string $str): M3uData
+    public function parse(string $str): Generator
     {
         $this->removeBom($str);
+        return $this->createGenerator($str);
+    }
 
+    protected function createGenerator($str): Generator
+    {
         $data = $this->createM3uData();
         $lines = \explode("\n", $str);
-
         for ($i = 0, $l = \count($lines); $i < $l; ++$i) {
             $lineStr = \trim($lines[$i]);
             if ('' === $lineStr || $this->isComment($lineStr)) {
@@ -46,10 +67,8 @@ class M3uParser
                 continue;
             }
 
-            $data->append($this->parseLine($i, $lines));
-        }
-
-        return $data;
+            yield $this->parseLine($i, $lines);
+        };
     }
 
     protected function createM3uEntry(): M3uEntry
