@@ -1,5 +1,5 @@
 {
-    "name": "gemorroj/m3u-parser",
+    "name": "sparkison/m3u-parser",
     "description": "m3u playlist parser/generator",
     "keywords": ["m3u", "m3u8", "playlist"],
     "type": "library",
