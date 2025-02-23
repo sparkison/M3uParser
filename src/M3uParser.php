@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace M3uParser;
 
 use Generator;
+use SplFileObject;
 
 class M3uParser
 {
@@ -50,9 +51,18 @@ class M3uParser
 
     protected function createGenerator($str): Generator
     {
-        $lines = \explode("\n", $str);
-        for ($i = 0, $l = \count($lines); $i < $l; ++$i) {
-            $lineStr = \trim($lines[$i]);
+        // open a temporary file handle in memory
+        $handle = fopen('php://temp', 'r+');
+
+        // write the string to the file handle
+        fwrite($handle, $str);
+
+        // rewind the file handle to the beginning
+        rewind($handle);
+
+        // parse the file line by line
+        while (($line = \fgets($handle, 2048)) !== false) {
+            $lineStr = \rtrim($line, "\n\r");
             if ('' === $lineStr || $this->isComment($lineStr)) {
                 continue;
             }
@@ -61,8 +71,15 @@ class M3uParser
                 continue;
             }
 
-            yield $this->parseLine($i, $lines);
-        };
+            yield $this->parseLine($line, $handle);
+        }
+
+        if (!feof($handle)) {
+            throw new Exception('Error while reading file.');
+        }
+
+        // close the file handle
+        fclose($handle);
     }
 
     protected function createM3uEntry(): M3uEntry
@@ -78,15 +95,15 @@ class M3uParser
     /**
      * Parse one line.
      *
-     * @param string[] $linesStr
+     * @param string $line
+     * @param resource $handle
      */
-    protected function parseLine(int &$lineNumber, array $linesStr): M3uEntry
+    protected function parseLine(string $line, $handle): M3uEntry
     {
         $entry = $this->createM3uEntry();
-
-        for ($l = \count($linesStr); $lineNumber < $l; ++$lineNumber) {
-            $nextLineStr = $linesStr[$lineNumber];
-            $nextLineStr = \trim($nextLineStr);
+        $nextLineStr = $line;
+        do {
+            $nextLineStr = \rtrim($nextLineStr, "\n\r");
 
             if ('' === $nextLineStr || $this->isComment($nextLineStr) || $this->isExtM3u($nextLineStr)) {
                 continue;
@@ -107,7 +124,7 @@ class M3uParser
 
                 break;
             }
-        }
+        } while ((($nextLineStr = \fgets($handle, 2048)) !== false));
 
         return $entry;
     }
