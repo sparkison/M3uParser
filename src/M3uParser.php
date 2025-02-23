@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace M3uParser;
 
 use Generator;
-use SplFileObject;
 
 class M3uParser
 {
@@ -13,56 +12,46 @@ class M3uParser
 
     /**
      * Parse m3u file.
+     * 
+     * @param string $filePath
+     * @param int $max_length
+     * 
+     * @return Generator<M3uEntry>
      */
-    public function parseFile(string $file): Generator
+    public function parseFile(string $filePath, int $max_length = 2048): Generator
     {
-        // create curl resource
-        $ch = curl_init();
-
-        // set url
-        curl_setopt($ch, CURLOPT_URL, $file);
-
-        //return the transfer as a string
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-        curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.1.13) Gecko/20080311 Firefox/2.0.0.13');
-
-        // $output contains the output string
-        $output = curl_exec($ch);
-
-        // close curl resource to free up system resources
-        curl_close($ch);
-
-        $str = $output;
-        if (false === $str) {
-            throw new Exception('Can\'t read file.');
-        }
-
-        return $this->parse($str);
+        return $this->createGenerator($filePath, $max_length);
     }
 
     /**
-     * Parse m3u string.
+     * Create a generator.
+     * 
+     * @param string $filePath
+     * @param int $max_length
+     * 
+     * @return Generator<M3uEntry>
+     * @throws Exception
      */
-    public function parse(string $str): Generator
+    protected function createGenerator(string $filePath, int $max_length): Generator
     {
-        $this->removeBom($str);
-        return $this->createGenerator($str);
-    }
-
-    protected function createGenerator($str): Generator
-    {
-        // open a temporary file handle in memory
-        $handle = fopen('php://temp', 'r+');
-
-        // write the string to the file handle
-        fwrite($handle, $str);
-
-        // rewind the file handle to the beginning
-        rewind($handle);
+        // create a file handle
+        $handle = fopen($filePath, 'r');
 
         // parse the file line by line
-        while (($line = \fgets($handle, 2048)) !== false) {
-            $lineStr = \rtrim($line, "\n\r");
+        $index = 0;
+        while (($line = \fgets($handle, $max_length)) !== false) {
+            // remove BOM
+            if (0 === $index) {
+                $this->removeBom($line);
+            }
+            $index++;
+
+            // make sure we have a full line and not a partial line (too long/malformed)
+            if (!(\str_ends_with($line, "\n") || \str_ends_with($line, "\r"))) {
+                continue;
+            }
+            $lineStr = \rtrim($line, "\r\n");
+
             if ('' === $lineStr || $this->isComment($lineStr)) {
                 continue;
             }
@@ -71,7 +60,7 @@ class M3uParser
                 continue;
             }
 
-            yield $this->parseLine($line, $handle);
+            yield $this->parseLine($line, $handle, $max_length);
         }
 
         if (!feof($handle)) {
@@ -82,28 +71,19 @@ class M3uParser
         fclose($handle);
     }
 
-    protected function createM3uEntry(): M3uEntry
-    {
-        return new M3uEntry();
-    }
-
-    protected function createM3uData(): M3uData
-    {
-        return new M3uData();
-    }
-
     /**
      * Parse one line.
      *
      * @param string $line
-     * @param resource $handle
+     * @param $handle
+     * @param int $max_length
      */
-    protected function parseLine(string $line, $handle): M3uEntry
+    protected function parseLine(string $line, $handle, int $max_length): M3uEntry
     {
         $entry = $this->createM3uEntry();
         $nextLineStr = $line;
         do {
-            $nextLineStr = \rtrim($nextLineStr, "\n\r");
+            $nextLineStr = \rtrim($nextLineStr, "\r\n");
 
             if ('' === $nextLineStr || $this->isComment($nextLineStr) || $this->isExtM3u($nextLineStr)) {
                 continue;
@@ -124,9 +104,22 @@ class M3uParser
 
                 break;
             }
-        } while ((($nextLineStr = \fgets($handle, 2048)) !== false));
+        } while ((($nextLineStr = \fgets($handle, $max_length)) !== false));
 
         return $entry;
+    }
+
+    /*
+     * Helper functions
+     */
+    protected function createM3uEntry(): M3uEntry
+    {
+        return new M3uEntry();
+    }
+
+    protected function createM3uData(): M3uData
+    {
+        return new M3uData();
     }
 
     protected function removeBom(string &$str): void
