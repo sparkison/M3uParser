@@ -72,6 +72,7 @@ example:
          */
         $dataLineStr = \substr($lineStr, \strlen('#EXTINF:'));
         $dataLineStr = \trim($dataLineStr);
+        $dataLineStr = \str_replace(" , ", ",", $dataLineStr);
 
         // Parse duration and title with regex
         \preg_match('/^(-?[\d\.]+)\s*(?:(?:[^=]+=["][^"]*["])|(?:[^=]+=[^ ]*))*,(.*)$/', $dataLineStr, $matches);
