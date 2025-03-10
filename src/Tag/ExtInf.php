@@ -65,17 +65,22 @@ class ExtInf implements ExtTagInterface
     protected function make(string $lineStr): void
     {
         /*
-EXTINF format:
-#EXTINF:<duration> [<attributes-list>], <title>
-example:
-#EXTINF:-1 tvg-name=Первый_HD tvg-logo="Первый канал" deinterlace=4 group-title="Эфирные каналы",Первый канал HD
+            EXTINF format:
+            #EXTINF:<duration> [<attributes-list>], <title>
+            example:
+            #EXTINF:-1 tvg-name=Первый_HD tvg-logo="Первый канал" deinterlace=4 group-title="Эфирные каналы",Первый канал HD
          */
         $dataLineStr = \substr($lineStr, \strlen('#EXTINF:'));
-        $dataLineStr = \trim($dataLineStr);
-        $dataLineStr = \str_replace(" , ", ",", $dataLineStr);
+
+        // Remove additional spaces around commas
+        $dataLineStr = \preg_replace("/(\s*,*\s*)*,+(\s*,*\s*)*/", ',', $dataLineStr);
 
         // Parse duration and title with regex
         \preg_match('/^(-?[\d\.]+)\s*(?:(?:[^=]+=["][^"]*["])|(?:[^=]+=[^ ]*))*,(.*)$/', $dataLineStr, $matches);
+
+        if (!(count($matches) >= 3)) {
+            throw new \InvalidArgumentException('Invalid EXTINF format: Check for additional/invalid characters, or spaces around commas, etc.');
+        }
 
         $this->setDuration((float) $matches[1]);
         $this->setTitle(\trim($matches[2]));
