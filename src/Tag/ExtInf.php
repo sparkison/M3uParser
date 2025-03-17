@@ -73,7 +73,7 @@ class ExtInf implements ExtTagInterface
         $dataLineStr = \substr($lineStr, \strlen('#EXTINF:'));
 
         // Remove additional spaces around commas
-        $dataLineStr = \preg_replace("/(\s*,*\s*)*,+(\s*,*\s*)*/", ',', $dataLineStr);
+        $dataLineStr = \preg_replace("/\s*,\s*/", ',', $dataLineStr);
 
         // Parse duration and title with regex
         \preg_match('/^(-?[\d\.]+)\s*(?:(?:[^=]+=["][^"]*["])|(?:[^=]+=[^ ]*))*,(.*)$/', $dataLineStr, $matches);
