@@ -22,6 +22,10 @@ trait TagsManagerTrait
      */
     private array $tags = [];
     
+    /**
+     * Store parse errors encountered during parsing. Each entry is a string describing the error.
+     * This can be used for logging or debugging purposes after parsing is complete.
+     */
     private array $parseErrors = [];
 
     /**
