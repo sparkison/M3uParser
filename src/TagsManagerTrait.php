@@ -21,6 +21,8 @@ trait TagsManagerTrait
      * @var class-string<ExtTagInterface>[]
      */
     private array $tags = [];
+    
+    private array $parseErrors = [];
 
     /**
      * Add tag.

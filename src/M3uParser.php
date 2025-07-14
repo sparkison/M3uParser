@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace M3uParser;
 
 use Generator;
+use InvalidArgumentException;
 
 class M3uParser
 {
@@ -60,7 +61,15 @@ class M3uParser
                 continue;
             }
 
-            yield $this->parseLine($line, $handle, $max_length);
+            try {
+                $output = $this->parseLine($line, $handle, $max_length);
+                if (null !== $output) {
+                    yield $output;
+                }
+            } catch (InvalidArgumentException $e) {
+                // Set parse error and continue
+                $this->parseErrors[] = sprintf('Line %d: %s', $index, $e->getMessage());
+            }
         }
 
         if (!feof($handle)) {
@@ -89,20 +98,25 @@ class M3uParser
                 continue;
             }
 
-            $matched = false;
-            foreach ($this->getTags() as $availableTag) {
-                if ($availableTag::isMatch($nextLineStr)) {
-                    $matched = true;
-                    $entry->addExtTag(new $availableTag($nextLineStr));
+            try {
+                $matched = false;
+                foreach ($this->getTags() as $availableTag) {
+                    if ($availableTag::isMatch($nextLineStr)) {
+                        $matched = true;
+                        $entry->addExtTag(new $availableTag($nextLineStr));
+
+                        break;
+                    }
+                }
+
+                if (!$matched) {
+                    $entry->setPath($nextLineStr);
 
                     break;
                 }
-            }
-
-            if (!$matched) {
-                $entry->setPath($nextLineStr);
-
-                break;
+            } catch (InvalidArgumentException $e) {
+                // Just rethrow the exception, we'll handle upstream
+                throw $e;
             }
         } while ((($nextLineStr = \fgets($handle, $max_length)) !== false));
 
