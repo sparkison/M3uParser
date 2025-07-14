@@ -81,6 +81,16 @@ class M3uParser
     }
 
     /**
+     * Get parse errors.
+     *
+     * @return string[]
+     */
+    public function getParseErrors(): array
+    {
+        return $this->parseErrors;
+    }
+
+    /**
      * Parse one line.
      *
      * @param string $line
