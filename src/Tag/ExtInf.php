@@ -79,7 +79,7 @@ class ExtInf implements ExtTagInterface
         \preg_match('/^(-?[\d\.]+)\s*(?:(?:[^=]+=["][^"]*["])|(?:[^=]+=[^ ]*))*,(.*)$/', $dataLineStr, $matches);
 
         if (!(count($matches) >= 3)) {
-            throw new \InvalidArgumentException('Invalid EXTINF format: Check for additional/invalid characters, or spaces around commas, etc.');
+            throw new \InvalidArgumentException("[[ Invalid EXTINF format ]] Check for additional, missing or invalid characters, spaces around commas, unclosed commas, etc. The invalid line was: `$lineStr`");
         }
 
         $this->setDuration((float) $matches[1]);
