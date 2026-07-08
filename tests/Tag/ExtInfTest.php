@@ -149,6 +149,23 @@ class ExtInfTest extends TestCase
         self::assertEquals($expectedString, (string) $data);
     }
 
+    public function testParseEmojiAndStrayToken(): void
+    {
+        // Real-world line: contains emoji in attribute/title values and a malformed
+        // stray token ("-2") before the comma that isn't a valid key="value" pair.
+        $testString = '#EXTINF:-1 group-title="- 🍔 MMA" tvg-logo="https://go4.pw/USA/SD2/15.png" tvg-id="WWE.ng (src05)" -2,WWE Network ⚠️';
+
+        $extInf = new ExtInf($testString);
+
+        self::assertSame(-1.0, $extInf->getDuration());
+        self::assertSame('WWE Network ⚠️', $extInf->getTitle());
+        self::assertSame([
+            'group-title' => '- 🍔 MMA',
+            'tvg-logo' => 'https://go4.pw/USA/SD2/15.png',
+            'tvg-id' => 'WWE.ng (src05)',
+        ], $extInf->getAttributes());
+    }
+
     public function testAttributeQuotes(): void
     {
         $testString = '#EXTINF:-1 tvg-id="" tvg-name="" tvg-logo="" tvg-chno="7529" channel-id="7529" group-title="S: (HULU) The Handmaid\'s Tale",The Handmaid\'s Tale S01 E01';

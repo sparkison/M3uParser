@@ -76,7 +76,10 @@ class ExtInf implements ExtTagInterface
         $dataLineStr = \preg_replace("/\s*,\s*/", ',', $dataLineStr);
 
         // Parse duration and title with regex
-        \preg_match('/^(-?[\d\.]+)\s*(?:(?:[^=]+=["][^"]*["])|(?:[^=]+=[^ ]*))*,(.*)$/', $dataLineStr, $matches);
+        // The attribute loop also tolerates stray tokens that aren't valid key="value"
+        // or key=value pairs (some providers emit malformed extras like a bare `-2`)
+        // so a single bad token doesn't fail the whole line.
+        \preg_match('/^(-?[\d\.]+)\s*(?:\s*(?:[^=\s]+=["][^"]*["]|[^=\s]+=[^ ]*|[^=\s,]+))*,(.*)$/', $dataLineStr, $matches);
 
         if (!(count($matches) >= 3)) {
             throw new \InvalidArgumentException("[[ Invalid EXTINF format ]] Check for additional, missing or invalid characters, spaces around commas, unclosed commas, etc. The invalid line was: `$lineStr`");
